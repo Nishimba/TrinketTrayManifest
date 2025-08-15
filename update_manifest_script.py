@@ -44,7 +44,7 @@ try:
                 
                 # Construct the GitHub zipball URL for the content repository
                 # Use the archive/refs/heads or archive/refs/tags format for direct zip download
-                zipball_url = f"https://github.com/{TRINKET_CONTENT_REPO}/archive/refs/heads/{TRINKET_CONTENT_REF}.zip"
+                zipball_url = f"https://api.github.com/repos/{TRINKET_CONTENT_REPO}/zipball/{TRINKET_CONTENT_REF}"
                 # If you want to use a specific tag, you'd change TRINKET_CONTENT_REF to the tag name
                 # and the URL to: f"https://github.com/{TRINKET_CONTENT_REPO}/archive/refs/tags/{TRINKET_CONTENT_REF}.zip"
 
