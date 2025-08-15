@@ -34,7 +34,6 @@ def calculate_sha256_from_url(url):
         return None
 
 try:
-    try:
     with open(MANIFEST_FILE, 'r+') as f:
         manifest_data = json.load(f)
 
