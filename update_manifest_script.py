@@ -11,6 +11,8 @@ MANIFEST_FILE = 'trinkets.json'
 TRINKET_CONTENT_REPO = os.environ.get('TRINKET_CONTENT_REPO')
 TRINKET_CONTENT_REF = os.environ.get('TRINKET_CONTENT_REF')
 
+EXCLUDE_PATTERNS = ['.git', '.github', '.vscode', '__pycache__', '.DS_Store']
+
 if not all([TRINKET_CONTENT_REPO, TRINKET_CONTENT_REF]):
     print("Error: Missing TRINKET_CONTENT_REPO or TRINKET_CONTENT_REF environment variables.")
     exit(1)
@@ -77,6 +79,9 @@ try:
 
                 # 3. Identify Trinket Folders and Add New Entries
                 for trinket_folder_name in os.listdir(repo_root_dir):
+                    if trinket_folder_name in EXCLUDE_PATTERNS:
+                        print(f"Skipping excluded folder: {trinket_folder_name}")
+                        continue
                     trinket_folder_path = os.path.join(repo_root_dir, trinket_folder_name)
                     if os.path.isdir(trinket_folder_path):
                         trinket_id = trinket_folder_name # Assuming folder name is the ID
