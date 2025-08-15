@@ -1,0 +1,47 @@
+name: Update Trinket Manifest Hashes
+
+on:
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch of *this* manifest repo
+  schedule:
+    - cron: '0 0 * * *' # Run once a day at midnight UTC
+
+jobs:
+  update_manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Grant write permission for pushing changes
+
+    steps:
+    - name: Checkout manifest repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Fetch all history
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests # We'll use requests to download the zipball
+
+    - name: Run script to update trinkets.json
+      run: python update_manifest_script.py
+      env:
+        # The repository where the actual trinket content lives
+        TRINKET_CONTENT_REPO: Nishimba/TrinketCollection
+        # The branch/tag/commit SHA of the trinket content to hash
+        TRINKET_CONTENT_REF: main # Or a specific tag like 'v1.0.0'
+
+    - name: Commit and push updated trinkets.json
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add trinkets.json
+        git commit -m "Automated: Update trinkets.json with new hash for ${{ env.TRINKET_CONTENT_REPO }}@${{ env.TRINKET_CONTENT_REF }}" || echo "No changes to commit"
+        git push

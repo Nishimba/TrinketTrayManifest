@@ -1,0 +1,11 @@
+[
+  {
+    "id": "my-first-trinket",
+    "name": "My First Trinket",
+    "iconUrl": "https://raw.githubusercontent.com/Nishimba/TrinketCollection/main/my-first-trinket/icon.png",
+    "appUrl": "https://github.com/Nishimba/TrinketCollection",
+    "ref": "main",
+    "entryFile": "my-first-trinket/index.html",
+    "hash": "PLACEHOLDER_HASH"
+  }
+]
