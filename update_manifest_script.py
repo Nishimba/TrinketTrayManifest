@@ -3,6 +3,9 @@ import os
 import hashlib
 import requests
 import time # For potential rate limiting
+import zipfile
+import shutil
+import tempfile
 
 MANIFEST_FILE = 'trinkets.json'
 TRINKET_CONTENT_REPO = os.environ.get('TRINKET_CONTENT_REPO')
@@ -31,37 +34,91 @@ def calculate_sha256_from_url(url):
         return None
 
 try:
+    try:
     with open(MANIFEST_FILE, 'r+') as f:
         manifest_data = json.load(f)
 
         updated = False
-        for trinket in manifest_data:
-            # Only update the trinket that points to the TRINKET_CONTENT_REPO
-            # You might need more sophisticated logic here if you have multiple trinkets
-            # pointing to different repos, or if you want to update all of them.
-            if TRINKET_CONTENT_REPO in trinket.get('appUrl', ''):
-                print(f"Processing trinket: {trinket.get('name')} (ID: {trinket.get('id')})")
-                
-                # Construct the GitHub zipball URL for the content repository
-                # Use the archive/refs/heads or archive/refs/tags format for direct zip download
-                zipball_url = f"https://api.github.com/repos/{TRINKET_CONTENT_REPO}/zipball/{TRINKET_CONTENT_REF}"
-                # If you want to use a specific tag, you'd change TRINKET_CONTENT_REF to the tag name
-                # and the URL to: f"https://github.com/{TRINKET_CONTENT_REPO}/archive/refs/tags/{TRINKET_CONTENT_REF}.zip"
+        existing_trinket_ids = {t['id'] for t in manifest_data}
 
-                new_hash = calculate_sha256_from_url(zipball_url)
+        # 1. Download TrinketCollection zipball and calculate its hash
+        zipball_url = f"https://api.github.com/repos/{TRINKET_CONTENT_REPO}/zipball/{TRINKET_CONTENT_REF}"
+        new_repo_hash = calculate_sha256_from_url(zipball_url)
+
+        if not new_repo_hash:
+            print("Failed to get new repository hash. Exiting.")
+            exit(1)
+
+        # 2. Download and Extract TrinketCollection to identify new folders
+        print(f"Downloading TrinketCollection zipball from {zipball_url} for folder discovery...")
+        try:
+            headers = {'User-Agent': 'GitHubActions-TrinketManifestUpdater'}
+            response = requests.get(zipball_url, headers=headers, stream=True)
+            response.raise_for_status()
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                zip_path = os.path.join(tmpdir, "trinket_collection.zip")
+                with open(zip_path, 'wb') as zf:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        zf.write(chunk)
+
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    extract_path = os.path.join(tmpdir, "extracted_repo")
+                    zip_ref.extractall(extract_path)
+
+                repo_root_dir = None
+                for item in os.listdir(extract_path):
+                    if os.path.isdir(os.path.join(extract_path, item)):
+                        repo_root_dir = os.path.join(extract_path, item)
+                        break
                 
-                if new_hash and new_hash != trinket.get('hash'):
-                    print(f"Hash updated for {trinket.get('name')}: {trinket.get('hash')} -> {new_hash}")
-                    trinket['hash'] = new_hash
-                    trinket['ref'] = TRINKET_CONTENT_REF # Update ref to match what was hashed
+                if not repo_root_dir:
+                    print("Error: Could not find repository root directory in extracted zip.")
+                    exit(1)
+
+                # 3. Identify Trinket Folders and Add New Entries
+                for trinket_folder_name in os.listdir(repo_root_dir):
+                    trinket_folder_path = os.path.join(repo_root_dir, trinket_folder_name)
+                    if os.path.isdir(trinket_folder_path):
+                        trinket_id = trinket_folder_name # Assuming folder name is the ID
+
+                        if trinket_id not in existing_trinket_ids:
+                            print(f"Found new trinket: {trinket_id}. Adding to manifest.")
+                            new_trinket_entry = {
+                                "id": trinket_id,
+                                "name": trinket_id.replace('-', ' ').title(), # Simple name generation
+                                "appUrl": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html",
+                                "iconUrl": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/icon.png",
+                                "entryFile": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html",
+                                "hash": new_repo_hash, # Use the hash of the entire repo
+                                "ref": TRINKET_CONTENT_REF
+                            }
+                            manifest_data.append(new_trinket_entry)
+                            updated = True
+                            existing_trinket_ids.add(trinket_id) # Add to set to avoid re-adding
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error downloading or extracting TrinketCollection: {e}")
+            exit(1)
+        except zipfile.BadZipFile:
+            print("Error: Downloaded file is not a valid zip file.")
+            exit(1)
+        except Exception as e:
+            print(f"An unexpected error occurred during zipball processing: {e}")
+            exit(1)
+
+        # 4. Update existing trinket hashes (all use the new_repo_hash)
+        for trinket in manifest_data:
+            if TRINKET_CONTENT_REPO in trinket.get('appUrl', ''):
+                if trinket.get('hash') != new_repo_hash:
+                    print(f"Updating hash for {trinket.get('name')}: {trinket.get('hash')} -> {new_repo_hash}")
+                    trinket['hash'] = new_repo_hash
+                    trinket['ref'] = TRINKET_CONTENT_REF
                     updated = True
-                elif new_hash:
-                    print(f"Hash for {trinket.get('name')} is already up-to-date: {new_hash}")
                 else:
-                    print(f"Failed to calculate new hash for {trinket.get('name')}. Skipping update.")
+                    print(f"Hash for {trinket.get('name')} is already up-to-date: {new_repo_hash}")
             
-            # Add a small delay to avoid hitting GitHub API rate limits if processing many trinkets
-            time.sleep(1)
+            time.sleep(0.1)
 
         if updated:
             f.seek(0)
