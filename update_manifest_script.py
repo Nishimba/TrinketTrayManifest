@@ -91,9 +91,9 @@ try:
                             new_trinket_entry = {
                                 "id": trinket_id,
                                 "name": trinket_id.replace('-', ' ').title(), # Simple name generation
-                                "appUrl": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html",
-                                "iconUrl": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/icon.png",
-                                "entryFile": f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html",
+                                "iconUrl": f"https://raw.githubusercontent.com/Nishimba/TrinketCollection/master/{trinket_id}/icon.png",
+                                "appUrl": "https://github.com/Nishimba/TrinketCollection",
+                                "entryFile": f"{trinket_id}/index.html",
                                 "hash": new_repo_hash, # Use the hash of the entire repo
                                 "ref": TRINKET_CONTENT_REF
                             }
@@ -111,14 +111,42 @@ try:
             print(f"An unexpected error occurred during zipball processing: {e}")
             exit(1)
 
-        # 4. Update existing trinket hashes and URLs (all use the new_repo_hash)
+        # 4. Ensure all trinkets conform to the "My First Trinket" structure
+        conformed_manifest_data = []
+        for trinket in manifest_data:
+            trinket_id = trinket.get('id')
+            if not trinket_id:
+                print(f"Warning: Trinket without 'id' found. Skipping: {trinket}")
+                continue
+
+            conformed_trinket = {
+                "id": trinket_id,
+                "name": trinket.get('name', trinket_id.replace('-', ' ').title()),
+                "iconUrl": trinket.get('iconUrl', f"https://raw.githubusercontent.com/Nishimba/TrinketCollection/master/{trinket_id}/icon.png"),
+                "appUrl": trinket.get('appUrl', "https://github.com/Nishimba/TrinketCollection"),
+                "ref": trinket.get('ref', TRINKET_CONTENT_REF),
+                "entryFile": trinket.get('entryFile', f"{trinket_id}/index.html"),
+                "hash": trinket.get('hash', new_repo_hash)
+            }
+            # Update 'hash' and 'ref' to the latest repo hash and ref
+            conformed_trinket['hash'] = new_repo_hash
+            conformed_trinket['ref'] = TRINKET_CONTENT_REF
+
+            # Check if any changes were made during conformance
+            if conformed_trinket != trinket:
+                updated = True
+                print(f"Conformed trinket '{trinket_id}'. Old: {trinket}, New: {conformed_trinket}")
+            conformed_manifest_data.append(conformed_trinket)
+        manifest_data = conformed_manifest_data
+
+        # 5. Update existing trinket hashes and URLs (all use the new_repo_hash)
         for trinket in manifest_data:
             if TRINKET_CONTENT_REPO in trinket.get('appUrl', ''):
                 trinket_id = trinket.get('id')
                 
-                expected_app_url = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html"
-                expected_icon_url = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/icon.png"
-                expected_entry_file = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html"
+                expected_app_url = "https://github.com/Nishimba/TrinketCollection"
+                expected_icon_url = f"https://raw.githubusercontent.com/Nishimba/TrinketCollection/master/{trinket_id}/icon.png"
+                expected_entry_file = f"{trinket_id}/index.html"
 
                 if trinket.get('hash') != new_repo_hash:
                     print(f"Updating hash for {trinket.get('name')}: {trinket.get('hash')} -> {new_repo_hash}")
