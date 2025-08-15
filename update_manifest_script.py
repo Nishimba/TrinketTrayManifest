@@ -111,9 +111,15 @@ try:
             print(f"An unexpected error occurred during zipball processing: {e}")
             exit(1)
 
-        # 4. Update existing trinket hashes (all use the new_repo_hash)
+        # 4. Update existing trinket hashes and URLs (all use the new_repo_hash)
         for trinket in manifest_data:
             if TRINKET_CONTENT_REPO in trinket.get('appUrl', ''):
+                trinket_id = trinket.get('id')
+                
+                expected_app_url = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html"
+                expected_icon_url = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/icon.png"
+                expected_entry_file = f"https://Nishimba.github.io/TrinketCollection/{trinket_id}/index.html"
+
                 if trinket.get('hash') != new_repo_hash:
                     print(f"Updating hash for {trinket.get('name')}: {trinket.get('hash')} -> {new_repo_hash}")
                     trinket['hash'] = new_repo_hash
@@ -121,6 +127,21 @@ try:
                     updated = True
                 else:
                     print(f"Hash for {trinket.get('name')} is already up-to-date: {new_repo_hash}")
+
+                if trinket.get('appUrl') != expected_app_url:
+                    print(f"Updating appUrl for {trinket.get('name')}: {trinket.get('appUrl')} -> {expected_app_url}")
+                    trinket['appUrl'] = expected_app_url
+                    updated = True
+
+                if trinket.get('iconUrl') != expected_icon_url:
+                    print(f"Updating iconUrl for {trinket.get('name')}: {trinket.get('iconUrl')} -> {expected_icon_url}")
+                    trinket['iconUrl'] = expected_icon_url
+                    updated = True
+
+                if trinket.get('entryFile') != expected_entry_file:
+                    print(f"Updating entryFile for {trinket.get('name')}: {trinket.get('entryFile')} -> {expected_entry_file}")
+                    trinket['entryFile'] = expected_entry_file
+                    updated = True
             
             time.sleep(0.1)
 
