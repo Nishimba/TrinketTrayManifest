@@ -7,6 +7,8 @@ on:
       - main # Trigger on pushes to the main branch of *this* manifest repo
   schedule:
     - cron: '0 0 * * *' # Run once a day at midnight UTC
+  repository_dispatch: # NEW: Listen for repository_dispatch events
+    types: [trinket_collection_updated] # NEW: Define a custom event type
 
 jobs:
   update_manifest:
