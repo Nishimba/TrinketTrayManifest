@@ -7,5 +7,14 @@
     "ref": "master",
     "entryFile": "my-first-trinket/index.html",
     "hash": "1f46960c24853b5229b619154b357fdbac6d7096f85ffc7222ac0e169499c1a9"
+  },
+  {
+    "id": "grassy-field-flowers",
+    "name": "Grassy Field Flowers",
+    "iconUrl": "https://raw.githubusercontent.com/Nishimba/TrinketCollection/master/grassy-field-flowers/icon.png",
+    "appUrl": "https://github.com/Nishimba/TrinketCollection",
+    "ref": "master",
+    "entryFile": "grassy-field-flowers/index.html",
+    "hash": "1f46960c24853b5229b619154b357fdbac6d7096f85ffc7222ac0e169499c1a9"
   }
 ]
