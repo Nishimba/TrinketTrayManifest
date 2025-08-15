@@ -38,7 +38,7 @@ jobs:
         # The repository where the actual trinket content lives
         TRINKET_CONTENT_REPO: Nishimba/TrinketCollection
         # The branch/tag/commit SHA of the trinket content to hash
-        TRINKET_CONTENT_REF: main # Or a specific tag like 'v1.0.0'
+        TRINKET_CONTENT_REF: master # Or a specific tag like 'v1.0.0'
 
     - name: Commit and push updated trinkets.json
       run: |
